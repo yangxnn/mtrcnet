@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pickle
 
-root_dir = '/research/pheng3/ymjin/MTRCNet/cholec80/'
+root_dir = '/home/u2022141214/mtr_20240709/cholec'
 img_dir = os.path.join(root_dir, 'data_resize')
 phase_dir = os.path.join(root_dir, 'phase_annotations')
 
@@ -59,11 +59,12 @@ for j in range(len(phase_file_names)):
     for phase_line in phase_file:
         phase_count += 1
         if phase_count > 1:
-            if phase_count % 25 == 2 and file_count <= frame_num:
+            if phase_count % 3 == 2 and file_count <= frame_num:
+            # if phase_count % 25 == 2 and file_count <= frame_num:
                 file_count += 1
                 phase_split = phase_line.split()
                 info_each = []
-                img_file_each_path = os.path.join(img_dir_paths[j], img_dir_names[j] + '-' + str(file_count) + '.jpg')
+                img_file_each_path = os.path.join(img_dir_paths[j], img_dir_names[j] + '-' + str(file_count) + '.png')
                 info_each.append(img_file_each_path)
                 info_each.append(phase_dict[phase_split[1]])
                 info_all.append(info_each)          
@@ -93,7 +94,8 @@ train_num_each = []
 val_num_each = []
 test_num_each = []
 
-for i in range(32):
+for i in range(3):
+# for i in range(32):
     train_num_each.append(len(all_info[i]))
     for j in range(len(all_info[i])):
         train_file_paths.append(all_info[i][j][0])
@@ -102,7 +104,8 @@ for i in range(32):
 print(len(train_file_paths))
 print(len(train_labels))
 
-for i in range(32, 40):
+for i in range(1): 
+# for i in range(32, 40):
     val_num_each.append(len(all_info[i]))
     for j in range(len(all_info[i])):
         val_file_paths.append(all_info[i][j][0])
@@ -111,7 +114,8 @@ for i in range(32, 40):
 print(len(val_file_paths))
 print(len(val_labels))
 
-for i in range(40, 80):
+for i in range(1): 
+# for i in range(40, 80):
     test_num_each.append(len(all_info[i]))
     for j in range(len(all_info[i])):
         test_file_paths.append(all_info[i][j][0])

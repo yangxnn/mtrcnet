@@ -15,8 +15,10 @@ from torchvision.transforms import Lambda
 
 parser = argparse.ArgumentParser(description='lstm testing')
 parser.add_argument('-g', '--gpu', default=True, type=bool, help='use gpu, default True')
-parser.add_argument('-s', '--seq', default=10, type=int, help='sequence length, default 10')
-parser.add_argument('-t', '--test', default=400, type=int, help='test batch size, default 10')
+parser.add_argument('-s', '--seq', default=3, type=int, help='sequence length, default 10')
+# parser.add_argument('-s', '--seq', default=10, type=int, help='sequence length, default 10')
+parser.add_argument('-t', '--test', default=1, type=int, help='test batch size, default 10')
+# parser.add_argument('-t', '--test', default=400, type=int, help='test batch size, default 10')
 parser.add_argument('-w', '--work', default=2, type=int, help='num of workers to use, default 4')
 parser.add_argument('-n', '--name', type=str, help='name of model')
 parser.add_argument(

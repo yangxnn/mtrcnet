@@ -1,0 +1,7 @@
+Frame	Grasper	Bipolar	Hook	Scissors	Clipper	Irrigator	SpecimenBag
+25	0	0	0	0	0	0	0
+300	0	0	0	0	0	0	0
+525	0	0	0	0	0	0	0
+675	0	0	0	0	0	0	0
+850	0	0	0	0	0	0	0
+1000	0	0	0	0	0	0	0

@@ -17,3 +17,11 @@ Frame	Phase
 15	Preparation
 16	Preparation
 17	Preparation
+18	Preparation
+19	Preparation
+20	Preparation
+21	Preparation
+22	Preparation
+23	Preparation
+24	Preparation
+25	Preparation

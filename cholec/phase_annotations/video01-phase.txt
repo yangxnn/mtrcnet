@@ -1,4 +1,5 @@
 Frame	Phase
+0	Preparation
 1	Preparation
 2	Preparation
 3	Preparation
@@ -17,3 +18,10 @@ Frame	Phase
 16	CalotTriangleDissection
 17	CalotTriangleDissection
 18	CalotTriangleDissection
+19	CalotTriangleDissection
+20	CalotTriangleDissection
+21	CalotTriangleDissection
+22	CalotTriangleDissection
+23	CalotTriangleDissection
+24	CalotTriangleDissection
+25	CalotTriangleDissection

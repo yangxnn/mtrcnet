@@ -536,7 +536,7 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
 
 
 def main():
-    train_dataset, train_num_each, val_dataset, val_num_each, _, _ = get_data('./train40_val8_test32_paths_labels.pkl')
+    train_dataset, train_num_each, val_dataset, val_num_each, _, _ = get_data('./train_val_test_paths_labels.pkl')
     train_model(train_dataset, train_num_each, val_dataset, val_num_each)
 
 

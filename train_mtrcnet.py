@@ -17,7 +17,8 @@ import argparse
 import copy
 import random
 import numbers
-from torch.utils.data.sampler import SequentialSampler # TODO 20240710源代码中sample使用有版本问题
+# from torch.utils.data.sampler import SequentialSampler # TODO 20240710源代码中sample使用有版本问题
+from torch.utils.data import Sampler  # 
 torch.backends.cudnn.enabled = False
 
 # os.environ['MKL_NUM_THREADS'] = '2'
@@ -26,7 +27,7 @@ torch.backends.cudnn.enabled = False
  
 parser = argparse.ArgumentParser(description='cnn_lstm training')
 parser.add_argument('-g', '--gpu', default=[2], nargs='+', type=int, help='index of gpu to use, default 2')
-parser.add_argument('-s', '--seq', default=3, type=int, help='sequence length, default 4')
+parser.add_argument('-s', '--seq', default=2, type=int, help='sequence length, default 4')
 parser.add_argument('-t', '--train', default=1, type=int, help='train batch size, default 100')
 parser.add_argument('-v', '--val', default=1, type=int, help='valid batch size, default 8')
 parser.add_argument('-o', '--opt', default=1, type=int, help='0 for sgd 1 for adam, default 1')
@@ -277,6 +278,18 @@ def get_data(data_path):
 
     return train_dataset, train_num_each, val_dataset, val_num_each, test_dataset, test_num_each
 
+# 序列采样sampler
+class SeqSampler(Sampler):
+    def __init__(self, data_source, idx):
+        super().__init__(data_source)
+        self.data_source = data_source
+        self.idx = idx
+
+    def __iter__(self):
+        return iter(self.idx)
+
+    def __len__(self):
+        return len(self.idx)
 
 def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
     num_train = len(train_dataset)
@@ -324,14 +337,16 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
     train_loader = DataLoader(  # 详情可以搜索pytorch DataLoader参数说明
         train_dataset,
         batch_size=train_batch_size,
-        sampler=train_idx,  # 取样本的索引
+        sampler=SeqSampler(train_dataset, train_idx),
+        # sampler=train_idx,  # 取样本的索引 sampler=SeqSampler(val_dataset, val_idx),
         num_workers=workers,
         pin_memory=False
     )
     val_loader = DataLoader(
         val_dataset,
         batch_size=val_batch_size,
-        sampler=val_idx,
+        sampler=SeqSampler(val_dataset, val_idx), # 
+        # sampler=val_idx,
         num_workers=workers,
         pin_memory=False
     )

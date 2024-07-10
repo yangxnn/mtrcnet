@@ -81,13 +81,13 @@ for j in range(len(tool_file_names)):
     for phase_line in phase_file:
         phase_count += 1    # 手术动作的行数
         # TODO 20240710 原数据是每秒25张, 每秒肯定是一个手术动作, 所以对应的phase都是一个, 但测试数据连续的只有3张图, 所以这里25要改成3, 当跑原数据时需要改回来.
-        # if phase_count % 25 == 2 and (phase_count // 25) < len(info_all):  # 每秒25张, 每秒肯定是一个手术动作, 
-        if phase_count % 3 == 2 and (phase_count // 3) < len(info_all):  # 每秒25张, 每秒肯定是一个手术动作, 
+        if phase_count % 25 == 2 and (phase_count // 25) < len(info_all):  # 每秒25张, 每秒肯定是一个手术动作, 
+        # if phase_count % 3 == 2 and (phase_count // 3) < len(info_all):  # 每秒25张, 每秒肯定是一个手术动作, 
             phase_split = phase_line.split()
             # for m in range(len(phase_split)):
             # TODO 20240710 同上面25改3
-            # info_all[phase_count // 25].append(phase_dict[phase_split[1]])  #  添加手术动作
-            info_all[phase_count // 3].append(phase_dict[phase_split[1]])  #  添加手术动作
+            info_all[phase_count // 25].append(phase_dict[phase_split[1]])  #  添加手术动作
+            # info_all[phase_count // 3].append(phase_dict[phase_split[1]])  #  添加手术动作
             last_phase_index = phase_split[0]   # frame标识
     print('the{:4d}th tool: {:6d} index_error{:2d}'.format(j, tool_count - 1,
                                                            int(last_tool_index) - int(last_phase_index)))
@@ -116,7 +116,7 @@ train_num_each = []
 val_num_each = []
 test_num_each = []
 
-for i in range(3):   # TODO 20240710 只有5个文件, 仅跑通把5个文件都用了
+for i in range(1):   # TODO 20240710 只有5个文件, 仅跑通把5个文件都用了
 # for i in range(32):   # 前32个视频图像做训练集
     train_num_each.append(len(all_info[i]))
     for j in range(len(all_info[i])):

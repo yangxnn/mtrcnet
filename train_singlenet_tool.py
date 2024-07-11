@@ -413,7 +413,9 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
             #_, preds_2 = torch.max(outputs_2.data, 1)
 
             sig_out = sig_f(outputs_1.data)
-            preds_1 = torch.ByteTensor(sig_out.cpu() > 0.5)
+            preds_1 = torch.zeros_like(sig_out.cpu())
+            preds_1[sig_out.cpu() > 0.5] = 1
+            # preds_1 = torch.ByteTensor(sig_out.cpu() > 0.5)
             preds_1 = preds_1.long()
             train_corrects_1 += torch.sum(preds_1 == labels_1.data.cpu())
             labels_1 = Variable(labels_1.data.float())
@@ -478,7 +480,9 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
             #_, preds_2 = torch.max(outputs_2.data, 1)
 
             sig_out = sig_f(outputs_1.data)
-            preds_1 = torch.ByteTensor(sig_out.cpu() > 0.5)
+            preds_1 = torch.zeros_like(sig_out.cpu())
+            preds_1[sig_out.cpu() > 0.5] = 1
+            # preds_1 = torch.ByteTensor(sig_out.cpu() > 0.5)
             preds_1 = preds_1.long()
             val_corrects_1 += torch.sum(preds_1 == labels_1.data.cpu())
             labels_1 = Variable(labels_1.data.float())

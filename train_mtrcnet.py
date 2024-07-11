@@ -17,14 +17,9 @@ import argparse
 import copy
 import random
 import numbers
-# from torch.utils.data.sampler import SequentialSampler # TODO 20240710源代码中sample使用有版本问题
 from torch.utils.data import Sampler  # 
 torch.backends.cudnn.enabled = False
 
-# os.environ['MKL_NUM_THREADS'] = '2'
-# os.environ['NUMEXPR_NUM_THREADS'] = '2'
-# os.environ['OMP_NUM_THREADS'] = '2'
- 
 parser = argparse.ArgumentParser(description='cnn_lstm training')
 parser.add_argument('-g', '--gpu', default=[0], nargs='+', type=int, help='index of gpu to use, default 2')
 parser.add_argument('-s', '--seq', default=1, type=int, help='sequence length, default 4')
@@ -187,13 +182,9 @@ class multi_lstm(torch.nn.Module):
         init.xavier_uniform(self.fc2.weight)
 
     def forward(self, x):
-        print('sf1 start forward')
         x = self.share.forward(x)
-        print('sf2 start share forward')
         x = x.view(-1, 2048)
-        print('sf3 x view')
         z = self.fc2(x)
-        print('sf4 get z')
         x = x.view(-1, sequence_length, 2048)
         self.lstm.flatten_parameters()
         y, _ = self.lstm(x)
@@ -358,12 +349,10 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
     )
     model = multi_lstm()  #生成模型实例
     sig_f = nn.Sigmoid()
-    print('s1 multi_lstm')
 
     if use_gpu:
         model = model.cuda()
         sig_f = sig_f.cuda()
-        print('s11 use_gpu')
     model = DataParallel(model)
     criterion_1 = nn.BCEWithLogitsLoss(size_average=False)  # 2中损失函数
     criterion_2 = nn.CrossEntropyLoss(size_average=False)
@@ -400,7 +389,6 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
                 {'params': model.module.fc2.parameters(), 'lr': learning_rate},
             ], lr=learning_rate / 10)
 
-    print('s2 finish optim set')
     best_model_wts = copy.deepcopy(model.state_dict())
     best_val_accuracy_1 = 0.0
     best_val_accuracy_2 = 0.0  # judge by accu2
@@ -409,9 +397,7 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
 
     record_np = np.zeros([epochs, 8])
 
-    print('s3 starting epoch')
     for epoch in range(epochs):  # 
-        print('s4 epoch i')
         # np.random.seed(epoch)
         np.random.shuffle(train_we_use_start_idx)
         train_idx = []
@@ -427,20 +413,16 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
             num_workers=workers,
             pin_memory=False
         )
-        print('s5 finish train_loader')
 
         model.train()
-        print('s6 finish model.train')
         train_loss_1 = 0.0
         train_loss_2 = 0.0
         train_corrects_1 = 0
         train_corrects_2 = 0
 
         train_start_time = time.time()
-        print('s7 starting for train_loader ')
         for data in train_loader:
             inputs, labels_1, labels_2 = data
-            print('s8 train_loader data i', labels_1, labels_2)
             if use_gpu:
                 inputs = Variable(inputs.cuda())
                 labels_1 = Variable(labels_1.cuda())
@@ -451,22 +433,16 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
                 labels_2 = Variable(labels_2)
 
             optimizer.zero_grad()
-            print('s9 start forward, inputs, label1, label2', inputs.size(), labels_1.size(), labels_2.size())
 
             outputs_1, outputs_2 = model.forward(inputs)
-            print('s10 finish forward')
 
             _, preds_2 = torch.max(outputs_2.data, 1)
 
             sig_out = sig_f(outputs_1.data)
-            print('s101', sig_out, type(sig_out))
-            print('s102', labels_1.data.float())
             preds_1 = torch.zeros_like(sig_out.cpu())
             preds_1[sig_out.cpu() > 0.5] = 1
             # preds_1 = torch.ByteTensor(sig_out.cpu() > 0.5)
             preds_1 = preds_1.long()
-            print('s103 sig, pred1', preds_1.data)
-            print('s11 finish pred')
             train_corrects_1 += torch.sum(preds_1 == labels_1.data.cpu())
             labels_1 = Variable(labels_1.data.float())
             loss_1 = criterion_1(outputs_1, labels_1)

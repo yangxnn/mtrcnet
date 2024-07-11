@@ -26,8 +26,8 @@ torch.backends.cudnn.enabled = False
 # os.environ['OMP_NUM_THREADS'] = '2'
  
 parser = argparse.ArgumentParser(description='cnn_lstm training')
-parser.add_argument('-g', '--gpu', default=[2], nargs='+', type=int, help='index of gpu to use, default 2')
-parser.add_argument('-s', '--seq', default=2, type=int, help='sequence length, default 4')
+parser.add_argument('-g', '--gpu', default=[0], nargs='+', type=int, help='index of gpu to use, default 2')
+parser.add_argument('-s', '--seq', default=1, type=int, help='sequence length, default 4')
 parser.add_argument('-t', '--train', default=1, type=int, help='train batch size, default 100')
 parser.add_argument('-v', '--val', default=1, type=int, help='valid batch size, default 8')
 parser.add_argument('-o', '--opt', default=1, type=int, help='0 for sgd 1 for adam, default 1')
@@ -67,7 +67,8 @@ sgd_adjust_lr = args.sgdadjust
 sgd_step = args.sgdstep
 sgd_gamma = args.sgdgamma
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = gpu_usg
+os.environ["CUDA_VISIBLE_DEVICES"] = gpu_usg
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 num_gpu = torch.cuda.device_count()
 use_gpu = torch.cuda.is_available()
 
@@ -164,6 +165,7 @@ class CholecDataset(Dataset):
 class multi_lstm(torch.nn.Module):
     def __init__(self):
         super(multi_lstm, self).__init__()
+        # resnet = models.resnet18(pretrained=True)
         resnet = models.resnet50(pretrained=True)
         self.share = torch.nn.Sequential()
         self.share.add_module("conv1", resnet.conv1)
@@ -178,20 +180,26 @@ class multi_lstm(torch.nn.Module):
         self.lstm = nn.LSTM(2048, 512, batch_first=True, dropout=1)
         self.fc = nn.Linear(512, 7)
         self.fc2 = nn.Linear(2048, 7)
+        self.fc3 = nn.Linear(2048, 7) # test,yangx
         init.xavier_normal(self.lstm.all_weights[0][0])
         init.xavier_normal(self.lstm.all_weights[0][1])
         init.xavier_uniform(self.fc.weight)
         init.xavier_uniform(self.fc2.weight)
 
     def forward(self, x):
+        print('sf1 start forward')
         x = self.share.forward(x)
+        print('sf2 start share forward')
         x = x.view(-1, 2048)
+        print('sf3 x view')
         z = self.fc2(x)
-        x = x.view(-1, sequence_length, 2048)
-        self.lstm.flatten_parameters()
-        y, _ = self.lstm(x)
-        y = y.contiguous().view(-1, 512)
-        y = self.fc(y)
+        print('sf4 get z')
+        # x = x.view(-1, sequence_length, 2048)
+        # self.lstm.flatten_parameters()
+        # y, _ = self.lstm(x)
+        # y = y.contiguous().view(-1, 512)
+        # y = self.fc(y)
+        y = self.fc3(x)
         return z, y
 
 
@@ -299,10 +307,12 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
 
     val_useful_start_idx = get_useful_start_idx(sequence_length, val_num_each)
 
-    num_train_we_use = len(train_useful_start_idx) // num_gpu * num_gpu
-    num_val_we_use = len(val_useful_start_idx) // num_gpu * num_gpu
-    # num_train_we_use = 4
-    # num_val_we_use = 800
+    # num_train_we_use = len(train_useful_start_idx) // num_gpu * num_gpu
+    num_train_we_use = len(train_useful_start_idx)
+    # num_val_we_use = len(val_useful_start_idx) // num_gpu * num_gpu
+    num_val_we_use = len(val_useful_start_idx)
+    num_train_we_use = 1
+    num_val_we_use = 1
 
     train_we_use_start_idx = train_useful_start_idx[0:num_train_we_use]
     val_we_use_start_idx = val_useful_start_idx[0:num_val_we_use]
@@ -319,9 +329,6 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
 
     num_train_all = len(train_idx)
     num_val_all = len(val_idx)
-    # TODO 20240710 sampler有版本使用问题, 这里需要转为SequentialSampler的实例
-    train_idx = SequentialSampler(data_source=train_idx) 
-    val_idx = SequentialSampler(data_source=val_idx) 
 
     print('num train start idx : {:6d}'.format(len(train_useful_start_idx)))
     print('last idx train start: {:6d}'.format(train_useful_start_idx[-1]))
@@ -352,10 +359,12 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
     )
     model = multi_lstm()  #生成模型实例
     sig_f = nn.Sigmoid()
+    print('s1 multi_lstm')
 
     if use_gpu:
         model = model.cuda()
         sig_f = sig_f.cuda()
+        print('s11 use_gpu')
     model = DataParallel(model)
     criterion_1 = nn.BCEWithLogitsLoss(size_average=False)  # 2中损失函数
     criterion_2 = nn.CrossEntropyLoss(size_average=False)
@@ -392,6 +401,7 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
                 {'params': model.module.fc2.parameters(), 'lr': learning_rate},
             ], lr=learning_rate / 10)
 
+    print('s2 finish optim set')
     best_model_wts = copy.deepcopy(model.state_dict())
     best_val_accuracy_1 = 0.0
     best_val_accuracy_2 = 0.0  # judge by accu2
@@ -400,7 +410,9 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
 
     record_np = np.zeros([epochs, 8])
 
-    for epoch in range(epochs):  # 默认8个epoch
+    print('s3 starting epoch')
+    for epoch in range(epochs):  # 
+        print('s4 epoch i')
         # np.random.seed(epoch)
         np.random.shuffle(train_we_use_start_idx)
         train_idx = []
@@ -408,25 +420,28 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
             for j in range(sequence_length):
                 train_idx.append(train_we_use_start_idx[i] + j)
 
-        # TODO 20240710 同上sampler
-        train_idx = SequentialSampler(data_source=train_idx) 
         train_loader = DataLoader(
             train_dataset,
             batch_size=train_batch_size,
-            sampler=train_idx,
+            sampler=SeqSampler(train_dataset, train_idx),
+            # sampler=train_idx,
             num_workers=workers,
             pin_memory=False
         )
+        print('s5 finish train_loader')
 
         model.train()
+        print('s6 finish model.train')
         train_loss_1 = 0.0
         train_loss_2 = 0.0
         train_corrects_1 = 0
         train_corrects_2 = 0
 
         train_start_time = time.time()
+        print('s7 starting for train_loader ')
         for data in train_loader:
             inputs, labels_1, labels_2 = data
+            print('s8 train_loader data i', labels_1, labels_2)
             if use_gpu:
                 inputs = Variable(inputs.cuda())
                 labels_1 = Variable(labels_1.cuda())
@@ -437,14 +452,22 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
                 labels_2 = Variable(labels_2)
 
             optimizer.zero_grad()
+            print('s9 start forward, inputs, label1, label2', inputs.size(), labels_1.size(), labels_2.size())
 
             outputs_1, outputs_2 = model.forward(inputs)
+            print('s10 finish forward')
 
             _, preds_2 = torch.max(outputs_2.data, 1)
 
             sig_out = sig_f(outputs_1.data)
-            preds_1 = torch.ByteTensor(sig_out.cpu() > 0.5)
+            print('s101', sig_out, type(sig_out))
+            print('s102', labels_1.data.float())
+            preds_1 = torch.zeros_like(sig_out.cpu())
+            preds_1[sig_out.cpu() > 0.5] = 1
+            # preds_1 = torch.ByteTensor(sig_out.cpu() > 0.5)
             preds_1 = preds_1.long()
+            print('s103 sig, pred1', preds_1.data)
+            print('s11 finish pred')
             train_corrects_1 += torch.sum(preds_1 == labels_1.data.cpu())
             labels_1 = Variable(labels_1.data.float())
             loss_1 = criterion_1(outputs_1, labels_1)
@@ -454,8 +477,10 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
             loss.backward()
             optimizer.step()
 
-            train_loss_1 += loss_1.data[0]
-            train_loss_2 += loss_2.data[0]
+            # train_loss_1 += loss_1.data[0]
+            # train_loss_2 += loss_2.data[0]
+            train_loss_1 += loss_1.data.data
+            train_loss_2 += loss_2.data.data
             train_corrects_2 += torch.sum(preds_2 == labels_2.data)
 
         train_elapsed_time = time.time() - train_start_time
@@ -508,15 +533,19 @@ def train_model(train_dataset, train_num_each, val_dataset, val_num_each):
             _, preds_2 = torch.max(outputs_2.data, 1)
 
             sig_out = sig_f(outputs_1.data)
-            preds_1 = torch.ByteTensor(sig_out.cpu() > 0.5)
+            preds_1 = torch.zeros_like(sig_out.cpu())
+            preds_1[sig_out.cpu() > 0.5] = 1
+            # preds_1 = torch.ByteTensor(sig_out.cpu() > 0.5)
             preds_1 = preds_1.long()
             val_corrects_1 += torch.sum(preds_1 == labels_1.data.cpu())
             labels_1 = Variable(labels_1.data.float())
             loss_1 = criterion_1(outputs_1, labels_1)
-            val_loss_1 += loss_1.data[0]
+            # val_loss_1 += loss_1.data[0]
+            val_loss_1 += loss_1.data.data
 
             loss_2 = criterion_2(outputs_2, labels_2)
-            val_loss_2 += loss_2.data[0]
+            # val_loss_2 += loss_2.data[0]
+            val_loss_2 += loss_2.data.data
             val_corrects_2 += torch.sum(preds_2 == labels_2.data)
 
         val_elapsed_time = time.time() - val_start_time

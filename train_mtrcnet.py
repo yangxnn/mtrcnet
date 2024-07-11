@@ -180,7 +180,7 @@ class multi_lstm(torch.nn.Module):
         self.lstm = nn.LSTM(2048, 512, batch_first=True, dropout=1)
         self.fc = nn.Linear(512, 7)
         self.fc2 = nn.Linear(2048, 7)
-        self.fc3 = nn.Linear(2048, 7) # test,yangx
+        # self.fc3 = nn.Linear(2048, 7) # test,yangx
         init.xavier_normal(self.lstm.all_weights[0][0])
         init.xavier_normal(self.lstm.all_weights[0][1])
         init.xavier_uniform(self.fc.weight)
@@ -194,12 +194,11 @@ class multi_lstm(torch.nn.Module):
         print('sf3 x view')
         z = self.fc2(x)
         print('sf4 get z')
-        # x = x.view(-1, sequence_length, 2048)
-        # self.lstm.flatten_parameters()
-        # y, _ = self.lstm(x)
-        # y = y.contiguous().view(-1, 512)
-        # y = self.fc(y)
-        y = self.fc3(x)
+        x = x.view(-1, sequence_length, 2048)
+        self.lstm.flatten_parameters()
+        y, _ = self.lstm(x)
+        y = y.contiguous().view(-1, 512)
+        y = self.fc(y)
         return z, y
 
 
